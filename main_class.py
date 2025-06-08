@@ -5,6 +5,8 @@ from datetime import datetime,timedelta
 from dotenv import load_dotenv
 import logging
 
+from tabulate import tabulate
+
 # Konfiguracja logowania
 # logging.basicConfig(
 #     filename='firefly_tool.log',
@@ -155,12 +157,15 @@ class TransactionProcessor:
                 continue
 
             for i, record in enumerate(matches, start=1):
+                sender = record.get("sender", "–")
+                recipient = record.get("recipient", "–")
+                details = record.get("details", "–")
                 print(f"\n   💬 Dopasowanie #{i}")
                 print(f"      📅 Data: {record['date']}")
                 print(f"      💰 Kwota: {record['amount']} PLN")
-                print(f"      👤 Nadawca: {record['sender']}")
-                print(f"      🏷️ Odbiorca: {record['recipient']}")
-                print(f"      📝 Szczegóły: {record['details']}")
+                print(f"      👤 Nadawca: {sender}")
+                print(f"      🏷️ Odbiorca: {recipient}")
+                print(f"      📝 Szczegóły: {details}")
                 print(f"          Nowy opis: {tx['description']};{record['recipient']}")
                 choice = input("      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n/q): ").strip().lower()
                 if choice == 't':
@@ -190,13 +195,15 @@ class TxtParser:
             date_str = self._parse_date(lines[i])
             description = lines[i + 1]
             recipient = lines[i + 2]
-            amount_str = lines[i + 3].replace('PLN', '').replace(',', '.').strip()
+            amount_str = (lines[i + 3]
+                          .replace('PLN', '').replace(',', '.').replace(' ', '')
+                          .strip())
             amount = float(amount_str)
 
             records.append({
                 "date": date_str,
                 "amount": amount,
-                "description": description,
+                "details": description,
                 "recipient": recipient
             })
 
@@ -216,15 +223,28 @@ class TxtParser:
             except ValueError:
                 raise ValueError(f"Nieprawidłowy format daty: {raw}")
 
+def print_txt_data(data):
+    if not data:
+        print("📭 Brak danych do wyświetlenia.")
+        return
+
+    headers = ["Data", "Opis", "Odbiorca", "Kwota (PLN)"]
+    rows = [[d["date"], d["description"],d["recipient"], f"{d['amount']:.2f}"] for d in data]
+
+    print(tabulate(rows, headers=headers, tablefmt="grid"))
+
 if __name__ == "__main__":
     logger.info("Start programu Firefly Transaction Tool")
 
-    #firefly = FireflyClient(FIREFLY_URL, HEADERS)
+    firefly = FireflyClient(FIREFLY_URL, HEADERS)
+    txt_data = TxtParser("alior08062025.txt").parse()
     #reader = BankCSVReader("alior.csv")
     #records = reader.read()
     #processor = TransactionProcessor(firefly, records)
-    #processor.process()
+    processor = TransactionProcessor(firefly, txt_data)
+    processor.process()
 
-    txt_data = TxtParser("transakcje_z_przegladarki.txt").parse()
+
+    #print_txt_data(txt_data)
 
     logger.info("Zakończono działanie programu")
