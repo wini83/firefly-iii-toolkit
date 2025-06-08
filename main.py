@@ -132,10 +132,16 @@ for tx in firefly_transactions:
         print(f"      🏷️ Odbiorca: {record['recipient']}")
         print(f"      📝 Szczegóły: {record['details']}")
         print(f"          Nowy opis: {tx['description']};{record['recipient']}")
-        choice = input("      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n): ").strip().lower()
+        choice = input("      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n/q): ").strip().lower()
         if choice == 't':
             new_description = f"{tx['description']};{record['recipient']}"
             update_transaction_description(tx["id"], new_description)
             break  # po aktualizacji nie sprawdzaj więcej dopasowań
-        else:
+        elif choice == 'n':
             print("      ⏩ Pominięto.")
+            break  # przejdź do kolejnego dopasowania (jeśli istnieje)
+        elif choice == 'q':
+            print("👋 Zakończono działanie programu przez użytkownika.")
+            exit(0)  # zakończ natychmiast cały skrypt
+        else:
+            print("      ⚠️ Wpisz 't' (tak), 'n' (nie) lub 'q' (zakończ).")
