@@ -1,5 +1,6 @@
 import csv
 import re
+import os
 
 month_map = {
     "sty": "01", "lut": "02", "mar": "03", "kwi": "04",
@@ -17,7 +18,21 @@ def convert_date(polish_date):
         return polish_date
     return f"{year}-{month}-{int(day):02d}"
 
-def parse_txt_to_firefly_csv(input_file, output_file, skip_positive=True):
+def write_chunk(transactions, filename):
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f, delimiter=';')
+        writer.writerow([
+            "date",
+            "description",
+            "amount",
+            "currency",
+            "foreign_currency",
+            "foreign_amount",
+            "opposing_account_name"
+        ])
+        writer.writerows(transactions)
+
+def parse_txt_to_firefly_csv(input_file, output_file, skip_positive=True, chunk_size=None):
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f if line.strip()]
 
@@ -63,28 +78,28 @@ def parse_txt_to_firefly_csv(input_file, output_file, skip_positive=True):
                     foreign_amount,
                     description  # opposing_account_name
                 ])
+
             except (IndexError, ValueError) as e:
                 print(f"Skipped malformed transaction at line {i}: {e}")
                 i += 1
         else:
             i += 1
 
-    with open(output_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f, delimiter=';')
-        writer.writerow([
-            "date",
-            "description",
-            "amount",
-            "currency",
-            "foreign_currency",
-            "foreign_amount",
-            "opposing_account_name"
-        ])
-        writer.writerows(transactions)
-
-    print(f"Saved {len(transactions)} transactions to {output_file} (skip_positive={skip_positive})")
+    if chunk_size is None:
+        # Write all in one file
+        write_chunk(transactions, output_file)
+        print(f"Saved {len(transactions)} transactions to {output_file} (skip_positive={skip_positive})")
+    else:
+        # Split into chunks
+        base, ext = os.path.splitext(output_file)
+        for idx, start in enumerate(range(0, len(transactions), chunk_size), 1):
+            chunk = transactions[start:start + chunk_size]
+            filename = f"{base}_{idx}{ext}"
+            write_chunk(chunk, filename)
+            print(f"Saved chunk {idx} with {len(chunk)} transactions to {filename} (skip_positive={skip_positive})")
 
 
-parse_txt_to_firefly_csv("statement.txt", "firefly_import.csv")
+
+parse_txt_to_firefly_csv("statement.txt", "firefly_import.csv", chunk_size=60)
 
 # parse_txt_to_firefly_csv("bank_output.txt", "firefly_import.csv", skip_positive=False)
