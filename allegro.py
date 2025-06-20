@@ -47,7 +47,7 @@ def await_for_access_token(interval, device_code):
                 break
         else:
             save_token(token)
-            return token['access_token']
+            return tokeng
 
 def save_token(token_data, filename='token.json'):
     token_data['obtained_at'] = int(time.time())

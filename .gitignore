@@ -123,3 +123,4 @@ fabric.properties
 *.log
 *.txt
 /token.json
+/firefly_import.csv
