@@ -34,7 +34,7 @@ class FireflyClient:
         self.base_url = base_url
         self.headers = headers
 
-    def get_blik_transactions(self,exact_match=True):
+    def get_blik_transactions(self,description_filter: str, exact_match: bool=True ):
         url = f"{self.base_url}/api/v1/transactions"
         params = {
             "limit": 1000,
@@ -60,7 +60,7 @@ class FireflyClient:
                 sub = subtransactions[0]
                 category_data = sub.get("relationships", {}).get("category", {}).get("data")
                 description = sub["description"].lower()
-                filter_text = DESCRIPTION_FILTER.lower()
+                filter_text = description_filter.lower()
                 filter_check = (
                     description == filter_text.lower() if exact_match
                     else filter_text.lower() in description
@@ -141,8 +141,8 @@ class TransactionProcessor:
         self.firefly_client = firefly_client
         self.bank_records = bank_records
 
-    def process(self):
-        firefly_transactions = self.firefly_client.get_blik_transactions(True)
+    def process(self, filter_text:str, exact_match: bool = True):
+        firefly_transactions = self.firefly_client.get_blik_transactions(filter_text,True)
 
         for tx in firefly_transactions:
             print(f"\n📌 Firefly: ID {tx['id']} | {tx['date']} | {tx['amount']} PLN | {tx['description']}")
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     #records = reader.read()
     #processor = TransactionProcessor(firefly, records)
     processor = TransactionProcessor(firefly, txt_data)
-    processor.process()
+    processor.process(DESCRIPTION_FILTER)
 
 
     #print_txt_data(txt_data)
