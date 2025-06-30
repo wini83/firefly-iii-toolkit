@@ -1,9 +1,10 @@
+import logging
 import os
 import csv
-import requests
 from datetime import datetime, timedelta
+
+import requests
 from dotenv import load_dotenv
-import logging
 from tabulate import tabulate
 
 logging.basicConfig(
@@ -29,12 +30,15 @@ HEADERS = {
 }
 
 class FireflyClient:
+    """Klient do komunikacji z API Firefly III"""
+
     def __init__(self, base_url, headers):
         self.base_url = base_url
         self.headers = headers
 
     def fetch_transactions(self, tx_type="withdrawal", limit=1000):
-        logger.info(f"Pobieranie transakcji typu '{tx_type}' z Firefly...")
+        """Pobiera transakcje danego typu z Firefly"""
+        logger.info("Pobieranie transakcji typu '%s' z Firefly...", tx_type)
         url = f"{self.base_url}/api/v1/transactions"
         params = {"limit": limit, "type": tx_type}
         page = 1
@@ -42,12 +46,11 @@ class FireflyClient:
 
         while True:
             params["page"] = page
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
 
-            for t in data["data"]:
-                transactions.append(t)
+            transactions.extend(data["data"])
 
             if not data["links"].get("next"):
                 break
@@ -56,16 +59,18 @@ class FireflyClient:
         return transactions
 
     def filter_single_part(self, transactions):
+        """Filtruje tylko transakcje nieskładające się z wielu części"""
         filtered = []
         for t in transactions:
             subtransactions = t["attributes"]["transactions"]
             if len(subtransactions) == 1:
                 filtered.append(t)
             else:
-                logger.warning(f"Pomijam dzieloną transakcję ID {t['id']}")
+                logger.warning("Pomijam dzieloną transakcję ID %s", t['id'])
         return filtered
 
     def filter_without_category(self, transactions):
+        """Filtruje transakcje nieprzypisane do żadnej kategorii"""
         filtered = []
         for t in transactions:
             sub = t["attributes"]["transactions"][0]
@@ -75,6 +80,7 @@ class FireflyClient:
         return filtered
 
     def filter_by_description(self, transactions, description_filter, exact_match=True):
+        """Filtruje transakcje na podstawie opisu"""
         filtered = []
         for t in transactions:
             desc = t["attributes"]["transactions"][0]["description"]
@@ -85,6 +91,7 @@ class FireflyClient:
         return filtered
 
     def simplify_transactions(self, transactions):
+        """Redukuje dane transakcji do prostego słownika"""
         simplified = []
         for t in transactions:
             sub = t["attributes"]["transactions"][0]
@@ -97,10 +104,11 @@ class FireflyClient:
         return simplified
 
     def update_transaction_description(self, transaction_id, new_description):
+        """Aktualizuje opis transakcji"""
         url = f"{self.base_url}/api/v1/transactions/{transaction_id}"
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, timeout=10)
         if response.status_code != 200:
-            logger.error(f"Nie udało się pobrać transakcji {transaction_id}")
+            logger.error("Nie udało się pobrać transakcji %s", transaction_id)
             return
 
         payload = {
@@ -111,17 +119,21 @@ class FireflyClient:
             ]
         }
 
-        put_response = requests.put(url, headers=self.headers, json=payload)
+        put_response = requests.put(url, headers=self.headers, json=payload, timeout=10)
         if put_response.status_code == 200:
-            logger.info(f"Zaktualizowano opis transakcji {transaction_id}")
+            logger.info("Zaktualizowano opis transakcji %s", transaction_id)
         else:
-            logger.error(f"Błąd aktualizacji {transaction_id}: {put_response.status_code} - {put_response.text}")
+            logger.error("Błąd aktualizacji %s: %s - %s", transaction_id,
+                         put_response.status_code, put_response.text)
 
 class BankCSVReader:
+    """Czytnik danych z pliku CSV banku"""
+
     def __init__(self, filename):
         self.filename = filename
 
     def read(self):
+        """Czyta dane z CSV i zwraca listę słowników"""
         records = []
         with open(self.filename, newline='', encoding='utf-8') as csvfile:
             next(csvfile)
@@ -137,6 +149,8 @@ class BankCSVReader:
         return records
 
 class TransactionMatcher:
+    """Klasa pomocnicza do dopasowywania transakcji z Firefly i CSV"""
+
     @staticmethod
     def match(tx, records):
         firefly_date = datetime.fromisoformat(tx["date"]).date()
@@ -151,6 +165,8 @@ class TransactionMatcher:
         return matches
 
 class TransactionProcessor:
+    """Logika przetwarzania i aktualizacji transakcji"""
+
     def __init__(self, firefly_client, bank_records):
         self.firefly_client = firefly_client
         self.bank_records = bank_records
@@ -159,11 +175,14 @@ class TransactionProcessor:
         raw = self.firefly_client.fetch_transactions()
         single = self.firefly_client.filter_single_part(raw)
         uncategorized = self.firefly_client.filter_without_category(single)
-        filtered = self.firefly_client.filter_by_description(uncategorized, filter_text, exact_match)
+        filtered = self.firefly_client.filter_by_description(
+            uncategorized, filter_text, exact_match
+        )
         firefly_transactions = self.firefly_client.simplify_transactions(filtered)
 
         for tx in firefly_transactions:
-            print(f"\n📌 Firefly: ID {tx['id']} | {tx['date']} | {tx['amount']} PLN | {tx['description']}")
+            print("\n📌 Firefly: ID %s | %s | %s PLN | %s" % (
+                tx['id'], tx['date'], tx['amount'], tx['description']))
             print("   🔍 Możliwe dopasowania z CSV:")
 
             matches = TransactionMatcher.match(tx, self.bank_records)
@@ -176,7 +195,7 @@ class TransactionProcessor:
                 sender = record.get("sender", "–")
                 recipient = record.get("recipient", "–")
                 details = record.get("details", "–")
-                print(f"\n   💬 Dopasowanie #{i}")
+                print("\n   💬 Dopasowanie #%d" % i)
                 print(f"      📅 Data: {record['date']}")
                 print(f"      💰 Kwota: {record['amount']} PLN")
                 print(f"      👤 Nadawca: {sender}")
@@ -186,15 +205,18 @@ class TransactionProcessor:
                 choice = input("      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n/q): ").strip().lower()
                 if choice == 't':
                     new_description = f"{tx['description']};{recipient}"
-                    self.firefly_client.update_transaction_description(tx["id"], new_description)
+                    self.firefly_client.update_transaction_description(
+                        tx["id"], new_description
+                    )
                     break
-                elif choice == 'q':
+                if choice == 'q':
                     print("🔚 Zakończono przetwarzanie.")
                     return
-                else:
-                    print("      ⏩ Pominięto.")
+                print("      ⏩ Pominięto.")
 
 class TxtParser:
+    """Parser tekstów skopiowanych z systemu bankowego"""
+
     def __init__(self, filename):
         self.filename = filename
 
@@ -211,9 +233,9 @@ class TxtParser:
             date_str = self._parse_date(lines[i])
             description = lines[i + 1]
             recipient = lines[i + 2]
-            amount_str = (lines[i + 3]
-                          .replace('PLN', '').replace(',', '.').replace(' ', '')
-                          .strip())
+            amount_str = (
+                lines[i + 3].replace('PLN', '').replace(',', '.').replace(' ', '').strip()
+            )
             amount = float(amount_str)
 
             records.append({
@@ -229,16 +251,16 @@ class TxtParser:
         raw = raw.lower()
         if raw == 'dziś':
             return datetime.today().strftime('%d-%m-%Y')
-        elif raw == 'wczoraj':
+        if raw == 'wczoraj':
             return (datetime.today() - timedelta(days=1)).strftime('%d-%m-%Y')
-        else:
-            try:
-                parsed = datetime.strptime(raw, '%d.%m.%y')
-                return parsed.strftime('%d-%m-%Y')
-            except ValueError:
-                raise ValueError(f"Nieprawidłowy format daty: {raw}")
+        try:
+            parsed = datetime.strptime(raw, '%d.%m.%y')
+            return parsed.strftime('%d-%m-%Y')
+        except ValueError as exc:
+            raise ValueError(f"Nieprawidłowy format daty: {raw}") from exc
 
 def print_txt_data(data):
+    """Pomocnicza funkcja do wyświetlania danych z tekstu"""
     if not data:
         print("📭 Brak danych do wyświetlenia.")
         return
@@ -253,6 +275,6 @@ if __name__ == "__main__":
     firefly = FireflyClient(FIREFLY_URL, HEADERS)
     txt_data = TxtParser("alior08062025.txt").parse()
     processor = TransactionProcessor(firefly, txt_data)
-    processor.process(DESCRIPTION_FILTER, exact_match=True)
+    processor.process(DESCRIPTION_FILTER, exact_match=False)
 
     logger.info("Zakończono działanie programu")
