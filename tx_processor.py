@@ -1,0 +1,65 @@
+from fireflyiii_enricher_core.firefly_client import (FireflyClient,
+                                                    filter_single_part,
+                                                    filter_without_category,
+                                                     filter_by_description,
+                                                     simplify_transactions)
+from fireflyiii_enricher_core.matcher import TransactionMatcher
+
+class TransactionProcessor:
+    """Logika przetwarzania i aktualizacji transakcji"""
+
+    def __init__(self, firefly_client:FireflyClient, bank_records):
+        self.firefly_client = firefly_client
+        self.bank_records = bank_records
+
+    def process(self, filter_text: str, exact_match: bool = True):
+        raw = self.firefly_client.fetch_transactions()
+        single = filter_single_part(raw)
+        uncategorized = filter_without_category(single)
+        filtered = filter_by_description(uncategorized, filter_text, exact_match
+        )
+        firefly_transactions = simplify_transactions(filtered)
+
+        for tx in firefly_transactions:
+            print("\n📌 Firefly: ID %s | %s | %s PLN | %s" % (
+                tx['id'], tx['date'], tx['amount'], tx['description']))
+            print("   🔍 Możliwe dopasowania z CSV:")
+
+            matches = TransactionMatcher.match(tx, self.bank_records)
+
+            if not matches:
+                print("   ⚠️ Brak dopasowań.")
+                continue
+
+            if "blik_done" in tx['tags']:
+                print("   Oznaczone tagiem 'blik_done' -omijam ")
+                continue
+
+
+
+            for i, record in enumerate(matches, start=1):
+                sender = record.get("sender", "–")
+                recipient = record.get("recipient", "–")
+                if record.get("recipient", "–") in tx['description']:
+                    print("   Odbiorca jest już umieszczony -omijam ")
+                    continue
+                details = record.get("details", "–")
+                print("\n   💬 Dopasowanie #%d" % i)
+                print(f"      📅 Data: {record['date']}")
+                print(f"      💰 Kwota: {record['amount']} PLN")
+                print(f"      👤 Nadawca: {sender}")
+                print(f"      🏷️ Odbiorca: {recipient}")
+                print(f"      🏷️ Tagi: {tx['tags']}")
+                print(f"      📝 Szczegóły: {details}")
+                print(f"          Nowy opis: {tx['description']};{recipient}")
+                choice = input("      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n/q): ").strip().lower()
+                if choice == 't':
+                    new_description = f"{tx['description']};{recipient}"
+                    self.firefly_client.update_transaction_description(
+                        tx["id"], new_description
+                    )
+                    break
+                if choice == 'q':
+                    print("🔚 Zakończono przetwarzanie.")
+                    return
+                print("      ⏩ Pominięto.")
