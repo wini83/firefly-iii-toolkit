@@ -29,7 +29,7 @@ if __name__ == "__main__":
     logger.info("Start programu Firefly Transaction Tool")
 
     firefly = FireflyClient(FIREFLY_URL, TOKEN)
-    txt_data = TxtParser("alior15072025.txt").parse()
+    txt_data = TxtParser("alior29072025.txt").parse()
     processor = TransactionProcessor(firefly, txt_data)
     processor.process(DESCRIPTION_FILTER, exact_match=False)
 

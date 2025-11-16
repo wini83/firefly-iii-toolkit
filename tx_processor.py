@@ -55,13 +55,13 @@ class TransactionProcessor:
                 print(f"      🏷️ Odbiorca: {recipient}")
                 print(f"      🏷️ Tagi: {tx.tags}")
                 print(f"      📝 Szczegóły: {details}")
-                print(f"          Nowy opis: {tx['description']};{recipient}")
+                print(f"          Nowy opis: {tx.description};{recipient}")
                 choice = input(
                     "      ❓ Czy chcesz zaktualizować opis w Firefly na podstawie tego wpisu? (t/n/q): ").strip().lower()
                 if choice == 't':
                     new_description = f"{tx.description};{recipient}"
                     self.firefly_client.update_transaction_description(
-                        tx["id"], new_description
+                        tx.id, new_description
                     )
                     break
                 if choice == 'q':
