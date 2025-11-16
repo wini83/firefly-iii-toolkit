@@ -22,6 +22,36 @@ class TransactionProcessor:
         self.firefly_client = firefly_client
         self.bank_records = bank_records
 
+    def preview(self, filter_text: str, exact_match: bool = True):
+        raw = self.firefly_client.fetch_transactions()
+        single = filter_single_part(raw)
+        uncategorized = filter_without_category(single)
+        filtered = filter_by_description(uncategorized, filter_text, exact_match)
+        firefly_transactions = simplify_transactions(filtered)
+
+        report = []
+
+        for tx in firefly_transactions:
+            matches = TransactionMatcher.match(tx, self.bank_records)
+            report.append({
+                "id": tx.id,
+                "date": str(tx.date),
+                "amount": tx.amount,
+                "description": tx.description,
+                "matches": [
+                    {
+                        "date": str(m.date),
+                        "amount": m.amount,
+                        "recipient":  cast(SimplifiedRecord, m).recipient,
+                        "details": cast(SimplifiedRecord, m).details,
+                    }
+                    for m in matches
+                ]
+            })
+
+        return report
+
+
     def process(self, filter_text: str, exact_match: bool = True):
         raw = self.firefly_client.fetch_transactions()
         single = filter_single_part(raw)
@@ -36,7 +66,7 @@ class TransactionProcessor:
             print("   🔍 Możliwe dopasowania z CSV:")
 
             matches = TransactionMatcher.match(tx, self.bank_records)
-            print (f"   Znaleziono {len(matches)} dopasowań.")
+
             if not matches:
                 print("   ⚠️ Brak dopasowań.")
                 continue
@@ -44,7 +74,7 @@ class TransactionProcessor:
             if "blik_done" in tx.tags:
                 print("   Oznaczone tagiem 'blik_done' -omijam ")
                 continue
-
+            print (f"   Znaleziono {len(matches)} dopasowań.")
             for i, record_raw in enumerate(matches, start=1):
                 record:SimplifiedRecord  = cast(SimplifiedRecord,record_raw)
                 sender = "" #record.sender
