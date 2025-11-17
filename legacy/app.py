@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fireflyiii_enricher_core.firefly_client import FireflyClient
 
-from csv_reader import BankCSVReader
-from tx_processor import TransactionProcessor
+from app.services.csv_reader import BankCSVReader
+from app.services.tx_processor import TransactionProcessor
 
 logging.basicConfig(
     level=logging.INFO,

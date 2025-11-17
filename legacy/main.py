@@ -3,10 +3,10 @@ import os
 
 from dotenv import load_dotenv
 from fireflyiii_enricher_core.firefly_client import FireflyClient
-
-from csv_reader import BankCSVReader
-from tx_processor import TransactionProcessor
 from txt_parser import TxtParser
+
+from app.services.csv_reader import BankCSVReader
+from app.services.tx_processor import TransactionProcessor
 
 logging.basicConfig(
     level=logging.INFO,

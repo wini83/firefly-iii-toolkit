@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 
 from tabulate import tabulate
 
-from tx_processor import SimplifiedRecord
+from app.services.tx_processor import SimplifiedRecord
 
 
 def _parse_date(raw: str) -> date:

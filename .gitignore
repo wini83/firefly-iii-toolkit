@@ -129,3 +129,4 @@ __pycache__/
 
 .venv/
 .vscode/
+data-legacy/
