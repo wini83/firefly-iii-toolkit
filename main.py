@@ -3,17 +3,18 @@ import os
 
 from dotenv import load_dotenv
 from fireflyiii_enricher_core.firefly_client import FireflyClient
+
+from csv_reader import BankCSVReader
 from tx_processor import TransactionProcessor
 from txt_parser import TxtParser
-from csv_reader import BankCSVReader
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler("blik_sync.log", encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler("blik_sync.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         logger.error("FIREFLY_URL and FIREFLY_TOKEN environment variables must be set")
         exit(1)
     firefly = FireflyClient(FIREFLY_URL, TOKEN)
-    if TXT:       
+    if TXT:
         txt_data = TxtParser("alior29072025.txt").parse()
 
     else:
