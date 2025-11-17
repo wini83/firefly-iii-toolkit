@@ -1,7 +1,7 @@
 import csv
 from datetime import date, datetime
 
-from tx_processor import SimplifiedRecord
+from app.services.tx_processor import SimplifiedRecord
 
 
 def parse_pl_date(s: str) -> date:
