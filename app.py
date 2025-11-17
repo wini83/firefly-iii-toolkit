@@ -1,23 +1,22 @@
-import os
 import base64
 import logging
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from typing import List
+import os
 import tempfile
 
 from dotenv import load_dotenv
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fireflyiii_enricher_core.firefly_client import FireflyClient
 
 from csv_reader import BankCSVReader
 from tx_processor import TransactionProcessor
-from fireflyiii_enricher_core.firefly_client import FireflyClient
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler("blik_sync.log", encoding='utf-8'),
-        logging.StreamHandler()
-    ]
+        logging.FileHandler("blik_sync.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
 )
 
 logger = logging.getLogger(__name__)
@@ -30,9 +29,11 @@ DESCRIPTION_FILTER = "BLIK - płatność w internecie"
 
 app = FastAPI(title="Firefly Transaction Tool API")
 
+
 def encode_base64url(s: str) -> str:
     encoded = base64.urlsafe_b64encode(s.encode()).decode()
     return encoded.rstrip("=")
+
 
 def decode_base64url(s: str) -> str:
     # usuwamy przypadkowe whitespace, bo curl lubi dokleić
@@ -45,6 +46,7 @@ def decode_base64url(s: str) -> str:
 
     return base64.urlsafe_b64decode(s).decode()
 
+
 @app.post("/upload-csv")
 async def upload_csv(file: UploadFile = File(...)):
     # zapisujemy CSV do temporary
@@ -54,15 +56,16 @@ async def upload_csv(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     records = BankCSVReader(tmp_path).parse()
-    filename = os.path.basename(tmp_path)     # "tmp94pv4q6h.csv"
-    file_id = os.path.splitext(filename)[0]   # "tmp94pv4q6h"
+    filename = os.path.basename(tmp_path)  # "tmp94pv4q6h.csv"
+    file_id = os.path.splitext(filename)[0]  # "tmp94pv4q6h"
     file_id_encoded = encode_base64url(file_id)
     print(tmp_path, file_id, file_id_encoded)
     return {
         "message": "Plik poprawnie wczytany",
         "count": len(records),
-        "id": file_id_encoded
+        "id": file_id_encoded,
     }
+
 
 @app.get("/")
 def root():
@@ -81,7 +84,7 @@ async def get_tempfile(encoded_id: str):
 
         # 4. Walidacja istnienia
         tempdir = tempfile.gettempdir()
-        full_path = os.path.join(tempdir, decoded_name+".csv")
+        full_path = os.path.join(tempdir, decoded_name + ".csv")
         print(full_path)
         if not os.path.exists(full_path):
             print("File does not exist")
@@ -92,17 +95,19 @@ async def get_tempfile(encoded_id: str):
         csv_data = BankCSVReader(full_path).parse()
         print(f"Wczytano {len(csv_data)} rekordów z CSV")
         if not FIREFLY_URL or not TOKEN:
-            logger.error("FIREFLY_URL and FIREFLY_TOKEN environment variables must be set")
+            logger.error(
+                "FIREFLY_URL and FIREFLY_TOKEN environment variables must be set"
+            )
             raise HTTPException(status_code=500, detail="Server configuration error")
-        firefly = FireflyClient(FIREFLY_URL, TOKEN)  
+        firefly = FireflyClient(FIREFLY_URL, TOKEN)
         processor = TransactionProcessor(firefly, csv_data)
         report = processor.preview(DESCRIPTION_FILTER, exact_match=False)
-        
+
         return {
             "file_id": encoded_id,
             "decoded_name": decoded_name,
             "size": len(csv_data),
-            "content": report
+            "content": report,
         }
 
     except Exception:
