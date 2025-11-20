@@ -1,15 +1,18 @@
 import os
 import tempfile
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile,Depends
 
 from app.services.csv_reader import BankCSVReader
 from app.utils.encoding import encode_base64url
+from app.services.auth import verify_token
 
 router = APIRouter(prefix="/upload-csv", tags=["upload"])
 
 
-@router.post("")
+
+
+@router.post("",dependencies=[Depends(verify_token)])
 async def upload_csv(file: UploadFile = File(...)):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
         content = await file.read()
