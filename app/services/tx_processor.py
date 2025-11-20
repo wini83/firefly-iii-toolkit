@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, cast
 
+
 from fireflyiii_enricher_core.firefly_client import (
     FireflyClient,
     SimplifiedItem,
@@ -17,7 +18,12 @@ from fireflyiii_enricher_core.matcher import TransactionMatcher
 class SimplifiedRecord(SimplifiedItem):
     details: str
     recipient: str
+    operation_amount: float
     sender: str = ""
+    operation_currency: str = "PLN"
+    account_currency: str = "PLN"
+    sender_account: str = ""
+    recipient_account: str = ""
 
 
 class TransactionProcessor:

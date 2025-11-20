@@ -40,11 +40,18 @@ class BankCSVReader:
                     SimplifiedRecord(
                         date=parse_pl_date(row["Data transakcji"]),
                         amount=parse_amount(
+                            row["Kwota w walucie rachunku"].replace(",", ".").replace(" ", "")
+                        ),
+                        operation_amount=parse_amount(
                             row["Kwota operacji"].replace(",", ".").replace(" ", "")
                         ),
                         sender=row["Nazwa nadawcy"],
                         recipient=row["Nazwa odbiorcy"],
                         details=row["Szczegóły transakcji"],
+                        operation_currency=row["Waluta operacji"],
+                        account_currency=row["Waluta rachunku"],
+                        sender_account=row["Numer rachunku nadawcy"],
+                        recipient_account=row["Numer rachunku odbiorcy"],
                     )
                 )
         return records
