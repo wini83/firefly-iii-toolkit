@@ -1,3 +1,13 @@
+## 0.2.0 (2025-11-20)
+
+### Feat
+
+- **auth**: add X-Token header authentication with APIKeyHeader and env-based token validation
+
+### Refactor
+
+- **csv**: map additional fields: operation_amount, currencies, sender/recipient accounts
+
 ## 0.1.1 (2025-11-17)
 
 ### Fix
