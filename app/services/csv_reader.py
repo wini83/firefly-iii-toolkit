@@ -32,7 +32,7 @@ class BankCSVReader:
 
     def parse(self):
         """Czyta dane z CSV i zwraca listę słowników"""
-        records:List[SimplifiedRecord] = []
+        records: List[SimplifiedRecord] = []
         with open(self.filename, newline="", encoding="utf-8") as csvfile:
             next(csvfile)
             reader = csv.DictReader(csvfile, delimiter=";")
@@ -41,7 +41,9 @@ class BankCSVReader:
                     SimplifiedRecord(
                         date=parse_pl_date(row["Data transakcji"]),
                         amount=parse_amount(
-                            row["Kwota w walucie rachunku"].replace(",", ".").replace(" ", "")
+                            row["Kwota w walucie rachunku"]
+                            .replace(",", ".")
+                            .replace(" ", "")
                         ),
                         operation_amount=parse_amount(
                             row["Kwota operacji"].replace(",", ".").replace(" ", "")

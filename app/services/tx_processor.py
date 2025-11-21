@@ -1,6 +1,5 @@
-from dataclasses import dataclass,fields
+from dataclasses import dataclass, fields
 from typing import List, cast
-
 
 from fireflyiii_enricher_core.firefly_client import (
     FireflyClient,
@@ -26,11 +25,9 @@ class SimplifiedRecord(SimplifiedItem):
     recipient_account: str = ""
 
     def pretty_print(self):
-        return "\n".join(
-            f"{f.name}: {getattr(self, f.name)}"
-            for f in fields(self)
-        )
- 
+        return "\n".join(f"{f.name}: {getattr(self, f.name)}" for f in fields(self))
+
+
 @dataclass
 class MatchResult:
     tx: SimplifiedTx
@@ -43,34 +40,35 @@ class TransactionProcessor:
     def __init__(self, firefly_client: FireflyClient):
         self.firefly_client = firefly_client
 
-
-    def match(self,bank_records: List[SimplifiedRecord], filter_text: str, exact_match: bool = True):
+    def match(
+        self,
+        bank_records: List[SimplifiedRecord],
+        filter_text: str,
+        exact_match: bool = True,
+    ):
         min_date = min(r.date for r in bank_records)
         max_date = max(r.date for r in bank_records)
-        raw = self.firefly_client.fetch_transactions(start_date=min_date, end_date=max_date)
+        raw = self.firefly_client.fetch_transactions(
+            start_date=min_date, end_date=max_date
+        )
         single = filter_single_part(raw)
         uncategorized = filter_without_category(single)
         filtered = filter_by_description(uncategorized, filter_text, exact_match)
         firefly_transactions = simplify_transactions(filtered)
 
-        txs:List[MatchResult] = []
-
+        txs: List[MatchResult] = []
 
         for tx in firefly_transactions:
-            matches = TransactionMatcher.match(tx, cast(List[SimplifiedItem],bank_records))
-            txs.append(MatchResult(tx=tx, matches=cast(List[SimplifiedRecord],matches)))
+            matches = TransactionMatcher.match(
+                tx, cast(List[SimplifiedItem], bank_records)
+            )
+            txs.append(
+                MatchResult(tx=tx, matches=cast(List[SimplifiedRecord], matches))
+            )
         return txs
-    
+
     def apply_match(self, tx: SimplifiedTx, record: SimplifiedRecord):
         new_description = f"{tx.description};{record.details}"
-        self.firefly_client.update_transaction_description(
-            int(tx.id), 
-            new_description
-        )
-        self.firefly_client.update_transaction_notes(
-            int(tx.id),
-            record.pretty_print()
-        )
+        self.firefly_client.update_transaction_description(int(tx.id), new_description)
+        self.firefly_client.update_transaction_notes(int(tx.id), record.pretty_print())
         self.firefly_client.add_tag_to_transaction(int(tx.id), "blik_done")
-
- 
