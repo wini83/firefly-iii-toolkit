@@ -8,7 +8,7 @@ from fireflyiii_enricher_core.firefly_client import (
     filter_by_description,
     filter_single_part,
     filter_without_category,
-    simplify_transactions,
+    simplify_transactions,filter_without_tag
 )
 from fireflyiii_enricher_core.matcher import TransactionMatcher
 
@@ -33,6 +33,10 @@ class MatchResult:
     tx: SimplifiedTx
     matches: List[SimplifiedRecord]
 
+def add_line(existing: str | None, new_line: str) -> str:
+    if existing:
+        return existing + "\n" + new_line
+    return new_line
 
 class TransactionProcessor:
     """Logika przetwarzania i aktualizacji transakcji"""
@@ -45,6 +49,7 @@ class TransactionProcessor:
         bank_records: List[SimplifiedRecord],
         filter_text: str,
         exact_match: bool = True,
+        tag: str = "blik_done",
     ):
         min_date = min(r.date for r in bank_records)
         max_date = max(r.date for r in bank_records)
@@ -54,6 +59,7 @@ class TransactionProcessor:
         single = filter_single_part(raw)
         uncategorized = filter_without_category(single)
         filtered = filter_by_description(uncategorized, filter_text, exact_match)
+        filtered = filter_without_tag(filtered, tag)
         firefly_transactions = simplify_transactions(filtered)
 
         txs: List[MatchResult] = []
@@ -70,7 +76,6 @@ class TransactionProcessor:
     def apply_match(self, tx: SimplifiedTx, record: SimplifiedRecord):
         new_description = f"{tx.description};{record.details}"
         self.firefly_client.update_transaction_description(int(tx.id), new_description)
-        notes = tx.notes
-        notes += f"\n{record.pretty_print()}"
+        notes = add_line(tx.notes, record.pretty_print())
         self.firefly_client.update_transaction_notes(int(tx.id), notes)
         self.firefly_client.add_tag_to_transaction(int(tx.id), "blik_done")

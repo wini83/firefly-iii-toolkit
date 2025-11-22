@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fireflyiii_enricher_core.firefly_client import FireflyClient
 from pydantic import BaseModel
 
-from app.config import DESCRIPTION_FILTER, FIREFLY_TOKEN, FIREFLY_URL
+from app.config import DESCRIPTION_FILTER, FIREFLY_TOKEN, FIREFLY_URL, TAG_BLIK_DONE
 from app.services.auth import verify_token
 from app.services.csv_reader import BankCSVReader
 from app.services.tx_processor import MatchResult, TransactionProcessor
@@ -53,7 +53,6 @@ async def get_tempfile(encoded_id: str):
 
 @router.get("/do-match/{encoded_id}", dependencies=[Depends(verify_token)])
 async def do_match(encoded_id: str):
-    try:
         print(f"cache items before: {len(MEM_MATCHES)}")
         decoded = decode_base64url(encoded_id)
 
@@ -74,7 +73,7 @@ async def do_match(encoded_id: str):
 
         firefly = FireflyClient(FIREFLY_URL, FIREFLY_TOKEN)
         processor = TransactionProcessor(firefly)
-        report = processor.match(csv_data, DESCRIPTION_FILTER, exact_match=False)
+        report = processor.match(csv_data, DESCRIPTION_FILTER, exact_match=False,tag=TAG_BLIK_DONE)
         not_matched = len([r for r in report if not r.matches])
         with_one_match = len([r for r in report if len(r.matches) == 1])
         with_many_matches = len([r for r in report if len(r.matches) > 1])
@@ -92,9 +91,6 @@ async def do_match(encoded_id: str):
             "content": report,
         }
 
-    except Exception:
-        raise HTTPException(status_code=500, detail="Invalid or corrupted id")
-
 
 @router.post("/apply_match/{encoded_id}")
 async def apply_matches(encoded_id: str, payload: ApplyPayload):
@@ -102,20 +98,15 @@ async def apply_matches(encoded_id: str, payload: ApplyPayload):
         raise HTTPException(status_code=400, detail="No match data found")
     data = MEM_MATCHES[encoded_id]
 
+    index = {int(item.tx.id): item for item in data}
+
     to_update: List[MatchResult] = []
 
-    for index in payload.csv_indexes:
-        found = False
-        for item in data:
-            if int(item.tx.id) == index:
-                to_update.append(item)
-                found = True
-                break
-        if not found:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Transaction id {index} not found in match data",
-            )
+    for req_id in payload.csv_indexes:
+        item = index.get(req_id)
+        if not item:
+            raise HTTPException(status_code=400, detail=f"Transaction id {req_id} not found")
+        to_update.append(item)
 
     for match in to_update:
         if len(match.matches) != 1:
