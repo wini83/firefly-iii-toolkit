@@ -46,6 +46,7 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    print(USERS)
     # OAuth2PasswordRequestForm expects fields: username, password (x-www-form-urlencoded)
     username = form_data.username
     password = form_data.password
