@@ -1,3 +1,10 @@
+## 0.4.2 (2025-11-30)
+
+### Fix
+
+- **api**: CORS middleware added
+- **main**: Updated main.py to import settings first and remove deprecated dotenv calls
+
 ## 0.4.1 (2025-11-29)
 
 ### Refactor
