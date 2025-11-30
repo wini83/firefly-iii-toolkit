@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.settings import settings
 from app.api.auth import router as auth_router
 from app.api.file import router as file_router
 from app.api.upload import router as upload_router
