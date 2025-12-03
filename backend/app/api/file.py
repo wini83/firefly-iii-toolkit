@@ -147,7 +147,7 @@ async def do_match(encoded_id: str) -> FileMatchResponse:
 
 
 @router.post("/apply_match/{encoded_id}", dependencies=[Depends(get_current_user)])
-async def apply_matches(encoded_id: str, payload: ApplyPayload):
+async def apply_matches(encoded_id: str, payload: ApplyPayload)->FileApplyResponse:
     if encoded_id not in MEM_MATCHES:
         raise HTTPException(status_code=400, detail="No match data found")
     data = MEM_MATCHES[encoded_id]
