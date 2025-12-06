@@ -1,3 +1,17 @@
+## 1.0.0 (2025-12-06)
+
+### BREAKING CHANGE
+
+- api endpoints changed
+
+### Feat
+
+- **api**: restructure API into clear namespaces and introduce blik_files pipeline
+
+### Refactor
+
+- **api**: isort ruff black mypy
+
 ## 0.4.5 (2025-12-06)
 
 ### Refactor
