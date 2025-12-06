@@ -1,3 +1,9 @@
+## 1.1.0 (2025-12-06)
+
+### Feat
+
+- **api**: add version endpoint, improve health response, and align BLIK models
+
 ## 1.0.0 (2025-12-06)
 
 ### BREAKING CHANGE
