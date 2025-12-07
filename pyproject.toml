@@ -5,16 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dotenv>=0.9.9",
-    "fastapi>=0.121.2",
+ "fastapi>=0.121.2",
     "fireflyiii-enricher-core",
+    "pydantic>=2",
     "pydantic-settings>=2.12.0",
     "pyjwt>=2.10.1",
-    "python-dotenv==1.2.1",
     "python-multipart>=0.0.20",
-    "streamlit==1.51.0",
-    "tabulate>=0.9.0",
+    "starlette>=0.37.2",
     "uvicorn>=0.38.0",
+    "python-dotenv>=1.0.0"
 ]
 
 [tool.uv.sources]
@@ -35,3 +34,9 @@ dev = [
     "mypy>=1.18.2",
     "ruff>=0.14.5",
 ]
+
+[tool.deptry]
+package_module_name_map = { "pyjwt" = "jwt","python-dotenv" = "dotenv" }
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["python-multipart","uvicorn"]
