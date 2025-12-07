@@ -1,3 +1,9 @@
+## 1.3.0 (2025-12-07)
+
+### Feat
+
+- **infra**: add full dockerization setup with reverse proxy and health-checked backend stack
+
 ## 1.2.0 (2025-12-07)
 
 ### Feat
