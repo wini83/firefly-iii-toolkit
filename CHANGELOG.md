@@ -1,3 +1,13 @@
+## 1.2.0 (2025-12-07)
+
+### Feat
+
+- **settings**: refactor middleware configuration into centralized settings layer
+
+### Refactor
+
+- **settings**: remove legacy config.py and migrate all env access to unified settings
+
 ## 1.1.0 (2025-12-06)
 
 ### Feat
