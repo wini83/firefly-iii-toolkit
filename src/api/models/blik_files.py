@@ -5,6 +5,15 @@ from pydantic import BaseModel
 from src.services.tx_processor import MatchResult, SimplifiedRecord
 
 
+class StatisticsResponse(BaseModel):
+    total_transactions: int
+    single_part_transactions: int
+    uncategorized_transactions: int
+    filtered_by_description_exact: int
+    filtered_by_description_partial: int
+    not_processed_transactions: int
+
+
 class UploadResponse(BaseModel):
     message: str
     count: int
