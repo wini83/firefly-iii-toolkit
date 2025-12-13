@@ -2,13 +2,13 @@ import tomllib
 
 from fastapi import FastAPI
 
-from src.api.routers.auth import router as auth_router
-from src.api.routers.blik_files import router as blik_router
-from src.api.routers.system import init_system_router
-from src.api.routers.system import router as system_router
-from src.middleware import register_middlewares
-from src.settings import settings
-from src.utils.logger import setup_logging
+from api.routers.auth import router as auth_router
+from api.routers.blik_files import router as blik_router
+from api.routers.system import init_system_router
+from api.routers.system import router as system_router
+from middleware import register_middlewares
+from settings import settings
+from utils.logger import setup_logging
 
 setup_logging()
 

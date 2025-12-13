@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from src.services.tx_processor import MatchResult, SimplifiedRecord
+from services.tx_processor import MatchResult, SimplifiedRecord
 
 
 class StatisticsResponse(BaseModel):

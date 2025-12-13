@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from src.api.models.system import HealthResponse, VersionResponse
+from api.models.system import HealthResponse, VersionResponse
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
